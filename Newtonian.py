@@ -203,7 +203,7 @@ class SolarSystem:
 
             acceleration = self._compute_acceleration(body, body.position)
             new_position = 2 * body.position - body.prev_position + acceleration * dt ** 2
-            new_velocity = (new_position - body.prev_position) / (2 * dt)  # This is the corrected velocity calculation
+            new_velocity = (new_position - body.prev_position) / (2 * dt)  # Corrected velocity calculation
 
             body.prev_position = body.position
             body.position = new_position
@@ -263,8 +263,12 @@ class SolarSystem:
     def get_current_positions(self):
         return {body.name: body.position for body in self.bodies}
 
+    def get_current_velocity(self):
+        return {body.name: body.velocity for body in self.bodies}
+
     def run_simulation(self, timeStep, SIMULATION_TIME, integrator, fileName="Trajectories"):
         self.trajectories = {body.name: [] for body in self.bodies}
+        self.velocities = {body.name: [] for body in self.bodies}
 
         days_per_frame = timeStep / (24 * 3600)  # Days per frame
 
@@ -276,8 +280,11 @@ class SolarSystem:
             self.calculate_energy_and_momentum()
 
             positions = self.get_current_positions()
+            velocities = self.get_current_velocity()
+
             for name in self.trajectories:
                 self.trajectories[name].append(positions[name].copy())
+                self.velocities[name].append(velocities[name].copy())
 
             if i % round(SIMULATION_STEPS / 10) == 0:
                 print(f"{round(i / SIMULATION_STEPS * 100)} % done")
@@ -286,6 +293,7 @@ class SolarSystem:
 
         # Store additional simulation data
         simulation_data = {"trajectories": self.trajectories,
+                           "velocities": self.velocities,
                            "kinetic_energy": [np.array(ke).tolist() for ke in self.ke_history],
                            "potential_energy": [np.array(pe).tolist() for pe in self.pe_history],
                            "angular_momentum": [np.array(am).tolist() for am in self.angular_momentum_history],
@@ -293,14 +301,13 @@ class SolarSystem:
                            "steps": SIMULATION_STEPS, "days_per_frame": days_per_frame, "animation_interval": 1}
 
         # Convert numpy arrays to lists for JSON serialization
-
-        # Convert numpy arrays to lists for JSON serialization
         for name in simulation_data["trajectories"]:
             simulation_data["trajectories"][name] = [pos.tolist() for pos in simulation_data["trajectories"][name]]
 
+        for name in simulation_data["velocities"]:
+            simulation_data["velocities"][name] = [vel.tolist() for vel in simulation_data["velocities"][name]]
 
         # Create 'SimulationData' directory if it does not exist
-
         if not os.path.exists(self.data_directory):
             os.makedirs(self.data_directory)
 
@@ -320,7 +327,6 @@ class SolarSystem:
             ke_history = simulation_data["kinetic_energy"]
             pe_history = simulation_data["potential_energy"]
             angular_momentum = simulation_data["angular_momentum"]
-            steps = simulation_data["steps"]
 
             # Calculate the total energy (kinetic + potential) at each step
             total_energy = [ke + pe for ke, pe in zip(ke_history, pe_history)]
@@ -363,7 +369,7 @@ class SolarSystem:
 
             trajectories = simulation_data["trajectories"]
 
-            # Find the maximum distance any body reaches from the origin
+            # Find the maximum distance any Body reaches from the origin
             max_distance = 0
             for path in trajectories.values():
                 for position in path:
@@ -426,7 +432,7 @@ class SolarSystem:
             days_per_frame = simulation_data["days_per_frame"]
             animation_interval = simulation_data["animation_interval"]
 
-            # Find the maximum distance any body reaches from the origin
+            # Find the maximum distance any Body reaches from the origin
             max_distance = 0
             for path in trajectories.values():
                 for position in path:
@@ -449,7 +455,7 @@ class SolarSystem:
             # Add a text element for the current day
             days_text = ax.text2D(0.05, 0.95, "", transform=ax.transAxes)
 
-            original_animation_interval = animation_interval  # Assuming animation_interval is defined elsewhere
+            original_animation_interval = animation_interval
             animation_interval = max(1, original_animation_interval // SIMULATION_SPEED)
 
             # Calculate total number of frames considering frame skip

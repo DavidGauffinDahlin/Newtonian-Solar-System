@@ -5,7 +5,6 @@ from Newtonian import CelestialBodyData
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import json
 import os
 
@@ -27,7 +26,6 @@ def plot_energy_and_angular_momentum_integrators(fileNames, step_interval=10):
 
             ke_history = np.array(simulation_data["kinetic_energy"])[::step_interval]
             pe_history = np.array(simulation_data["potential_energy"])[::step_interval]
-            angular_momentum = np.array(simulation_data["angular_momentum"])[::step_interval]
 
             # Calculate total energy and energy drift
             total_energy = ke_history + pe_history
@@ -114,11 +112,9 @@ def plot_angular_momentum_z_drift(fileNames, step_interval=10):
 
 
 def compare_integrators_performance(fileNames):
-    earth_movement_per_integrator = {}
     earth_final_positions = {}  # Store Earth's final positions for comparison
     distance_to_rk4 = {}
     angular_change_per_integrator = {}
-    rk4_final_position = None
     rk4_angular_change = None
     rk4_earth_final_position = None
 
@@ -127,6 +123,18 @@ def compare_integrators_performance(fileNames):
 
         with open(file_path, "r") as file:
             simulation_data = json.load(file)
+
+            # Extract asteroid velocities
+            asteroid_velocities = np.array(simulation_data["velocities"]["asteroid Ceres: 9.39×10^20"])
+
+            # Calculate start, final, and maximum velocities
+            start_velocity = np.linalg.norm(asteroid_velocities[0])
+            final_velocity = np.linalg.norm(asteroid_velocities[-1])
+            max_velocity = np.max(np.linalg.norm(asteroid_velocities, axis=1))
+
+            print(f"{fileName} - Start Velocity: {start_velocity:.5f} m/s, "
+                  f"Final Velocity: {final_velocity:.5f} m/s, "
+                  f"Max Velocity: {max_velocity:.5f} m/s")
 
             # Get Earth's and Ceres' trajectory
             earth_trajectory = np.array(simulation_data["trajectories"]["Earth"])
@@ -274,6 +282,18 @@ def analyze_asteroid_trajectories(fileNames):
         with open(file_path, "r") as file:
             simulation_data = json.load(file)
 
+            # Extract asteroid velocities
+            asteroid_velocities = np.array(simulation_data["velocities"][fileName])
+
+            # Calculate start, final, and maximum velocities
+            start_velocity = np.linalg.norm(asteroid_velocities[0])
+            final_velocity = np.linalg.norm(asteroid_velocities[-1])
+            max_velocity = np.max(np.linalg.norm(asteroid_velocities, axis=1))
+
+            print(f"{fileName} - Start Velocity: {start_velocity:.5f} m/s, "
+                  f"Final Velocity: {final_velocity:.5f} m/s, "
+                  f"Max Velocity: {max_velocity:.5f} m/s")
+
             # Get Earth's and the asteroid's trajectory
             earth_trajectory = np.array(simulation_data["trajectories"]["Earth"])
             asteroid_trajectory = np.array(simulation_data["trajectories"][fileName])
@@ -419,8 +439,6 @@ def main_analyse_mass_impact():
 
     plot_trajectories_with_ceres(fileNames=[astroid.name for astroid in asteroids], body_boundary_radius=EARTH_RADIUS)
 
-    SolarSystem.animate_trajectories(SIMULATION_SPEED=2, fileName="Small asteroid: 100kg")
-
 
 # Section for analysing the time step dependence
 def simulate_time_step_sensitivity():
@@ -456,11 +474,7 @@ def simulate_time_step_sensitivity():
         print(f"Simulation with time step {dt} completed in {elapsed_time:.2f} seconds")
 
 
-def plot_time_step_dependence(fileNames, step_interval=10):
-    # Initialize figures for plots
-    fig_energy, ax_energy = plt.subplots(figsize=(15, 5))
-    fig_angular, ax_angular = plt.subplots(figsize=(15, 5))
-
+def analyse_time_step_dependence(fileNames, step_interval=10):
     # Variables to store final position differences
     final_position_differences = {}
     final_earth_movements = {}
@@ -475,6 +489,18 @@ def plot_time_step_dependence(fileNames, step_interval=10):
         with open(file_path, "r") as file:
             simulation_data = json.load(file)
 
+            # Extract asteroid velocities
+            asteroid_velocities = np.array(simulation_data["velocities"]["asteroid Ceres: 9.39×10^20"])
+
+            # Calculate start, final, and maximum velocities
+            start_velocity = np.linalg.norm(asteroid_velocities[0])
+            final_velocity = np.linalg.norm(asteroid_velocities[-1])
+            max_velocity = np.max(np.linalg.norm(asteroid_velocities, axis=1))
+
+            print(f"{fileName} - Start Velocity: {start_velocity:.5f} m/s, "
+                  f"Final Velocity: {final_velocity:.5f} m/s, "
+                  f"Max Velocity: {max_velocity:.5f} m/s")
+
             # Extract initial positions
             initial_positions = np.array(simulation_data["trajectories"]["asteroid Ceres: 9.39×10^20"][0])
             initial_earth_position = np.array(simulation_data["trajectories"]["Earth"][0])
@@ -485,13 +511,11 @@ def plot_time_step_dependence(fileNames, step_interval=10):
             total_energy = ke_history + pe_history
             initial_total_energy = total_energy[0]
             energy_drift_percent = (total_energy - initial_total_energy) / initial_total_energy * 100
-            ax_energy.plot(energy_drift_percent, label=f"{fileName} Energy Drift (%)")
 
             # Angular Momentum Z Drift
             angular_momentum = np.array(simulation_data["angular_momentum"])[::step_interval]
             initial_angular_momentum_z = angular_momentum[0, 2]  # Assuming Z is the 3rd component
             angular_momentum_z_drift = (angular_momentum[:, 2] - initial_angular_momentum_z) / initial_angular_momentum_z * 100
-            ax_angular.plot(angular_momentum_z_drift, label=f"{fileName} Angular Momentum Z Drift (%)")
 
             # Store final position differences and earth movements
             final_positions = np.array(simulation_data["trajectories"]["asteroid Ceres: 9.39×10^20"][-1])
@@ -508,29 +532,12 @@ def plot_time_step_dependence(fileNames, step_interval=10):
                 reference_final_position_ceres = final_position_ceres
                 reference_final_position_earth = final_position_earth
 
-    # Set plot properties for Energy Drift
-    ax_energy.set_title("Total Energy Drift (%)", fontsize=20)
-    ax_energy.set_xlabel("Step", fontsize=16)
-    ax_energy.set_ylabel("Energy Drift (%)", fontsize=16)
-    ax_energy.legend(fontsize=14)
-    ax_energy.tick_params(axis='both', which='major', labelsize=14)
-
-    # Set plot properties for Angular Momentum Z Drift
-    ax_angular.set_title("Angular Momentum Z-axis Drift (%)", fontsize=20)
-    ax_angular.set_xlabel("Step", fontsize=16)
-    ax_angular.set_ylabel("Angular Momentum Drift (%)", fontsize=16)
-    ax_angular.legend(fontsize=14)
-    ax_angular.tick_params(axis='both', which='major', labelsize=14)
-
-    plt.show()
-
     # Print the final position differences relative to the 0.005-second timestep simulation
     for fileName in fileNames:
         if "0.005" not in fileName:
             file_path = os.path.join(data_directory, f"{fileName}.json")
             with open(file_path, "r") as file:
                 simulation_data = json.load(file)
-
 
                 # Extract final positions
                 final_position_ceres = np.array(simulation_data["trajectories"]["asteroid Ceres: 9.39×10^20"][-1])
@@ -544,10 +551,57 @@ def plot_time_step_dependence(fileNames, step_interval=10):
                 print(f"{fileName}: Relative Earth Movement: {earth_position_difference:.5f} meters")
 
 
+def plot_time_step_dependence(fileNames):
+    # Initialize figures for plots
+    fig_energy, ax_energy = plt.subplots(figsize=(15, 5))
+    fig_angular, ax_angular = plt.subplots(figsize=(15, 5))
+
+    for fileName in fileNames:
+        file_path = os.path.join(data_directory, f"{fileName}.json")
+
+        with open(file_path, "r") as file:
+            simulation_data = json.load(file)
+
+            # Extract the time step from the file name
+            time_step = float(fileName.split('_')[-1].replace('.json', ''))
+
+            # Energy Drift
+            ke_history = np.array(simulation_data["kinetic_energy"])
+            pe_history = np.array(simulation_data["potential_energy"])
+            total_energy = ke_history + pe_history
+            initial_total_energy = total_energy[0]
+            energy_drift_percent = (total_energy - initial_total_energy) / initial_total_energy * 100
+            time_axis = np.arange(0, len(energy_drift_percent) * time_step, time_step)
+            ax_energy.plot(time_axis, energy_drift_percent, label=f"{fileName} Energy Drift (%)")
+
+            # Angular Momentum Z Drift
+            angular_momentum = np.array(simulation_data["angular_momentum"])
+            initial_angular_momentum_z = angular_momentum[0, 2]  # Assuming Z is the 3rd component
+            angular_momentum_z_drift = (angular_momentum[:, 2] - initial_angular_momentum_z) / initial_angular_momentum_z * 100
+            ax_angular.plot(time_axis, angular_momentum_z_drift, label=f"{fileName} Angular Momentum Z Drift (%)")
+
+    # Set plot properties for Energy Drift
+    ax_energy.set_title("Total Energy Drift (%)", fontsize=20)
+    ax_energy.set_xlabel("Time (seconds)", fontsize=16)
+    ax_energy.set_ylabel("Energy Drift (%)", fontsize=16)
+    ax_energy.legend(fontsize=14)
+    ax_energy.tick_params(axis='both', which='major', labelsize=14)
+
+    # Set plot properties for Angular Momentum Z Drift
+    ax_angular.set_title("Angular Momentum Z-axis Drift (%)", fontsize=20)
+    ax_angular.set_xlabel("Time (seconds)", fontsize=16)
+    ax_angular.set_ylabel("Angular Momentum Drift (%)", fontsize=16)
+    ax_angular.legend(fontsize=14)
+    ax_angular.tick_params(axis='both', which='major', labelsize=14)
+
+    plt.show()
+
+
 def main_compare_time_steps():
     simulate_time_step_sensitivity()
 
-    fileNames = ["Ceres_time_step_0.005", "Ceres_time_step_0.01", "Ceres_time_step_0.02", "Ceres_time_step_0.05"]  # Update with your actual file names
+    fileNames = ["Ceres_time_step_0.005", "Ceres_time_step_0.01", "Ceres_time_step_0.02", "Ceres_time_step_0.05"]
+    analyse_time_step_dependence(fileNames)
     plot_time_step_dependence(fileNames)
 
 
